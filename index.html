@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hangman Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 0.95em;
+        }
+
+        .game-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .hangman-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .hangman-drawing {
+            width: 150px;
+            height: 180px;
+            border: 2px solid #333;
+            border-radius: 8px;
+            background: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre;
+            line-height: 1.2;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .wrong-count {
+            text-align: center;
+            font-size: 1.1em;
+            color: #d32f2f;
+            font-weight: 600;
+        }
+
+        .word-section {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .category {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .word-display {
+            font-size: 2.2em;
+            letter-spacing: 12px;
+            font-weight: bold;
+            color: #333;
+            font-family: 'Courier New', monospace;
+            text-align: center;
+            margin-bottom: 20px;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .wrong-letters {
+            font-size: 0.85em;
+            color: #d32f2f;
+            word-wrap: break-word;
+        }
+
+        .wrong-letters-label {
+            font-size: 0.75em;
+            color: #999;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+            letter-spacing: 0.5px;
+        }
+
+        .keyboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(32px, 1fr));
+            gap: 6px;
+            margin-bottom: 30px;
+        }
+
+        .letter-btn {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            background: white;
+            color: #333;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9em;
+            transition: all 0.2s ease;
+        }
+
+        .letter-btn:hover:not(:disabled) {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .letter-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            background: #f5f5f5;
+        }
+
+        .letter-btn.correct {
+            background: #4caf50;
+            color: white;
+            border-color: #4caf50;
+        }
+
+        .letter-btn.wrong {
+            background: #d32f2f;
+            color: white;
+            border-color: #d32f2f;
+        }
+
+        .actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        button {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .new-game-btn {
+            background: #667eea;
+            color: white;
+        }
+
+        .new-game-btn:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal h2 {
+            font-size: 2em;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .modal.win h2 {
+            color: #4caf50;
+        }
+
+        .modal.lose h2 {
+            color: #d32f2f;
+        }
+
+        .modal p {
+            font-size: 1.1em;
+            color: #666;
+            margin-bottom: 25px;
+        }
+
+        .modal-answer {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 20px;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 2px;
+        }
+
+        .modal button {
+            width: 100%;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 25px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            .game-layout {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .word-display {
+                font-size: 1.8em;
+                letter-spacing: 8px;
+            }
+
+            .hangman-drawing {
+                width: 120px;
+                height: 150px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 Hangman</h1>
+        <p class="subtitle">Guess the word, letter by letter</p>
+
+        <div class="game-layout">
+            <div class="hangman-section">
+                <div class="hangman-drawing" id="hangman"></div>
+                <div class="wrong-count"><span id="wrongCount">0</span>/6 wrong</div>
+            </div>
+
+            <div class="word-section">
+                <div class="category" id="category"></div>
+                <div class="word-display" id="wordDisplay"></div>
+                <div class="wrong-letters-label">Wrong guesses</div>
+                <div class="wrong-letters" id="wrongLetters"></div>
+            </div>
+        </div>
+
+        <div class="keyboard" id="keyboard"></div>
+
+        <div class="actions">
+            <button class="new-game-btn" onclick="initGame()">New Game</button>
+            <a href="admin.html" style="padding:12px 20px;border:2px solid rgba(102,126,234,0.4);border-radius:6px;font-size:0.9em;font-weight:600;color:#667eea;text-decoration:none;display:inline-flex;align-items:center;gap:6px;transition:all 0.2s;" onmouseover="this.style.background='rgba(102,126,234,0.08)'" onmouseout="this.style.background='transparent'">⚙️ Admin</a>
+        </div>
+    </div>
+
+    <div class="modal" id="gameModal">
+        <div class="modal-content">
+            <h2 id="modalTitle">You Win!</h2>
+            <p id="modalMessage"></p>
+            <div class="modal-answer" id="modalAnswer"></div>
+            <button class="new-game-btn" onclick="initGame()">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        const DEFAULT_WORDS = {
+            animals: ['elephant', 'giraffe', 'penguin', 'butterfly', 'cheetah', 'dolphin', 'flamingo', 'koala'],
+            countries: ['japan', 'france', 'australia', 'argentina', 'canada', 'norway', 'spain', 'thailand'],
+            colors: ['purple', 'turquoise', 'magenta', 'crimson', 'chartreuse', 'indigo', 'maroon', 'olive'],
+            sports: ['basketball', 'volleyball', 'tennis', 'badminton', 'cricket', 'surfing', 'archery', 'skiing'],
+            movies: ['inception', 'titanic', 'avatar', 'matrix', 'jaws', 'alien', 'rocky', 'shrek']
+        };
+
+        function loadWords() {
+            try { return JSON.parse(localStorage.getItem('hm_words')) || DEFAULT_WORDS; }
+            catch { return DEFAULT_WORDS; }
+        }
+
+        function loadSettings() {
+            const defaults = { maxGuesses: 6, showCategory: true, showWrongLetters: true, showLetterCount: false, trackAnalytics: true, minWordLen: 3 };
+            try { return Object.assign({}, defaults, JSON.parse(localStorage.getItem('hm_settings'))); }
+            catch { return defaults; }
+        }
+
+        let WORDS = loadWords();
+        let settings = loadSettings();
+
+        let game = { word: '', category: '', guessedLetters: [], wrongGuesses: [], gameOver: false, won: false };
+
+        const hangmanStages = [
+            '   -----\n   |   |\n       |\n       |\n       |\n       |\n---------',
+            '   -----\n   |   |\n   O   |\n       |\n       |\n       |\n---------',
+            '   -----\n   |   |\n   O   |\n   |   |\n       |\n       |\n---------',
+            '   -----\n   |   |\n   O   |\n  /|   |\n       |\n       |\n---------',
+            '   -----\n   |   |\n   O   |\n  /|\\  |\n       |\n       |\n---------',
+            '   -----\n   |   |\n   O   |\n  /|\\  |\n  /    |\n       |\n---------',
+            '   -----\n   |   |\n   O   |\n  /|\\  |\n  / \\  |\n       |\n---------',
+            '   -----\n   |   |\n  \\O/  |\n   |   |\n  / \\  |\n       |\n---------',
+            '   -----\n   |   |\n  \\O/  |\n  /|   |\n  / \\  |\n       |\n---------',
+            '   -----\n   |   |\n  \\O/  |\n  /|\\  |\n  / \\  |\n       |\n---------',
+            '   -----\n   |   |\n  xOx  |\n  /|\\  |\n  / \\  |\n       |\n---------'
+        ];
+
+        function getStage(wrongCount) {
+            return hangmanStages[Math.min(wrongCount, hangmanStages.length - 1)];
+        }
+
+        function pickWord() {
+            WORDS = loadWords();
+            settings = loadSettings();
+            const categories = Object.keys(WORDS).filter(c => (WORDS[c] || []).length > 0);
+            if (!categories.length) return;
+            game.category = categories[Math.floor(Math.random() * categories.length)];
+            const pool = WORDS[game.category].filter(w => w.length >= settings.minWordLen);
+            const source = pool.length > 0 ? pool : WORDS[game.category];
+            game.word = source[Math.floor(Math.random() * source.length)].toUpperCase();
+        }
+
+        function initGame() {
+            game = { word: '', category: '', guessedLetters: [], wrongGuesses: [], gameOver: false, won: false };
+            pickWord();
+            document.getElementById('keyboard').innerHTML = '';
+            document.getElementById('gameModal').classList.remove('active');
+            render();
+        }
+
+        function guessLetter(letter) {
+            if (game.gameOver || game.guessedLetters.includes(letter)) return;
+            game.guessedLetters.push(letter);
+            if (!game.word.includes(letter)) game.wrongGuesses.push(letter);
+            trackLetter(letter);
+            checkGameState();
+            render();
+        }
+
+        function checkGameState() {
+            const won = game.word.split('').every(l => game.guessedLetters.includes(l));
+            const lost = game.wrongGuesses.length >= settings.maxGuesses;
+            if (won) { game.gameOver = true; game.won = true; recordGame(true); showModal(true); }
+            else if (lost) { game.gameOver = true; game.won = false; recordGame(false); showModal(false); }
+        }
+
+        function showModal(won) {
+            const modal = document.getElementById('gameModal');
+            const title = document.getElementById('modalTitle');
+            const message = document.getElementById('modalMessage');
+            modal.classList.remove('win', 'lose');
+            if (won) {
+                modal.classList.add('win');
+                title.textContent = '🎉 You Won!';
+                message.textContent = 'Congratulations! You guessed the word.';
+            } else {
+                modal.classList.add('lose');
+                title.textContent = '😢 Game Over';
+                message.textContent = 'You ran out of guesses. Better luck next time!';
+            }
+            document.getElementById('modalAnswer').textContent = game.word;
+            modal.classList.add('active');
+        }
+
+        function render() {
+            renderHangman();
+            renderWordDisplay();
+            renderKeyboard();
+            renderWrongLetters();
+            document.getElementById('category').textContent = settings.showCategory ? game.category : '';
+            document.getElementById('wrongCount').textContent = game.wrongGuesses.length;
+            document.querySelector('.wrong-count').innerHTML =
+                `<span id="wrongCount">${game.wrongGuesses.length}</span>/${settings.maxGuesses} wrong`;
+        }
+
+        function renderHangman() {
+            document.getElementById('hangman').textContent = getStage(game.wrongGuesses.length);
+        }
+
+        function renderWordDisplay() {
+            let display = game.word.split('').map(l => game.guessedLetters.includes(l) ? l : '_').join(' ');
+            if (settings.showLetterCount) display += `  [${game.word.length}]`;
+            document.getElementById('wordDisplay').textContent = display;
+        }
+
+        function renderKeyboard() {
+            const keyboard = document.getElementById('keyboard');
+            const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+            if (keyboard.children.length === 0) {
+                alphabet.forEach(letter => {
+                    const btn = document.createElement('button');
+                    btn.textContent = letter;
+                    btn.className = 'letter-btn';
+                    btn.onclick = () => guessLetter(letter);
+                    keyboard.appendChild(btn);
+                });
+            }
+            keyboard.querySelectorAll('button').forEach((btn, i) => {
+                const letter = alphabet[i];
+                btn.disabled = game.guessedLetters.includes(letter) || game.gameOver;
+                btn.classList.remove('correct', 'wrong');
+                if (game.guessedLetters.includes(letter))
+                    btn.classList.add(game.word.includes(letter) ? 'correct' : 'wrong');
+            });
+        }
+
+        function renderWrongLetters() {
+            const el = document.getElementById('wrongLetters');
+            const show = settings.showWrongLetters;
+            el.style.display = show ? '' : 'none';
+            el.previousElementSibling.style.display = show ? '' : 'none';
+            if (show) el.textContent = game.wrongGuesses.length > 0 ? game.wrongGuesses.join(', ') : '—';
+        }
+
+        // ── ANALYTICS ──
+        function recordGame(won) {
+            if (!settings.trackAnalytics) return;
+            try {
+                const ana = JSON.parse(localStorage.getItem('hm_analytics') || '{"games":[],"letterFreq":{},"categoryWins":{},"categoryGames":{}}');
+                ana.games.push({ won, wrongCount: game.wrongGuesses.length, category: game.category, word: game.word });
+                ana.categoryGames[game.category] = (ana.categoryGames[game.category] || 0) + 1;
+                if (won) ana.categoryWins[game.category] = (ana.categoryWins[game.category] || 0) + 1;
+                localStorage.setItem('hm_analytics', JSON.stringify(ana));
+
+                const act = JSON.parse(localStorage.getItem('hm_activity') || '[]');
+                const now = new Date();
+                const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                act.push({ type: won ? 'win' : 'loss', text: `${won ? 'Won' : 'Lost'} — ${game.word} (${game.category})`, time });
+                if (act.length > 50) act.splice(0, act.length - 50);
+                localStorage.setItem('hm_activity', JSON.stringify(act));
+            } catch(e) {}
+        }
+
+        function trackLetter(letter) {
+            if (!settings.trackAnalytics) return;
+            try {
+                const ana = JSON.parse(localStorage.getItem('hm_analytics') || '{"games":[],"letterFreq":{},"categoryWins":{},"categoryGames":{}}');
+                ana.letterFreq[letter] = (ana.letterFreq[letter] || 0) + 1;
+                localStorage.setItem('hm_analytics', JSON.stringify(ana));
+            } catch(e) {}
+        }
+
+        initGame();
+    </script>
+</body>
+</html>

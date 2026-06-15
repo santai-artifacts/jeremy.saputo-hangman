@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard — Hangman</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #667eea;
+            --primary-dark: #5568d3;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --bg: #f8f9fc;
+            --sidebar-bg: #1e1e2e;
+            --sidebar-text: #a0a0b8;
+            --sidebar-active: #667eea;
+            --card-bg: #fff;
+            --border: #e5e7eb;
+            --text: #111827;
+            --text-muted: #6b7280;
+            --radius: 10px;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* ── SIDEBAR ── */
+        .sidebar {
+            width: 240px;
+            background: var(--sidebar-bg);
+            color: var(--sidebar-text);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0; left: 0; bottom: 0;
+            z-index: 100;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar-logo {
+            padding: 24px 20px 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.07);
+        }
+
+        .sidebar-logo h2 {
+            font-size: 1.1em;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: -0.3px;
+        }
+
+        .sidebar-logo span {
+            font-size: 0.75em;
+            color: var(--sidebar-text);
+            margin-top: 2px;
+            display: block;
+        }
+
+        nav {
+            flex: 1;
+            padding: 16px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .nav-section-label {
+            font-size: 0.65em;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: rgba(160,160,184,0.5);
+            padding: 12px 8px 4px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 12px;
+            border-radius: 7px;
+            cursor: pointer;
+            font-size: 0.875em;
+            font-weight: 500;
+            color: var(--sidebar-text);
+            transition: all 0.15s;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+        }
+
+        .nav-item:hover { background: rgba(255,255,255,0.06); color: #fff; }
+        .nav-item.active { background: rgba(102,126,234,0.18); color: #fff; }
+        .nav-item.active .nav-icon { color: var(--primary); }
+        .nav-icon { font-size: 1.1em; width: 20px; text-align: center; }
+
+        .sidebar-footer {
+            padding: 16px 12px;
+            border-top: 1px solid rgba(255,255,255,0.07);
+        }
+
+        .back-link {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.8em;
+            color: var(--sidebar-text);
+            text-decoration: none;
+            padding: 8px 12px;
+            border-radius: 7px;
+            transition: all 0.15s;
+        }
+
+        .back-link:hover { background: rgba(255,255,255,0.06); color: #fff; }
+
+        /* ── MAIN ── */
+        .main {
+            margin-left: 240px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .topbar {
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border);
+            padding: 0 32px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .topbar-title { font-size: 1em; font-weight: 600; }
+
+        .topbar-actions { display: flex; align-items: center; gap: 12px; }
+
+        .badge {
+            background: var(--primary);
+            color: white;
+            font-size: 0.7em;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 20px;
+        }
+
+        .content {
+            padding: 32px;
+            flex: 1;
+        }
+
+        /* ── PANELS ── */
+        .panel { display: none; }
+        .panel.active { display: block; }
+
+        /* ── STAT CARDS ── */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .stat-label { font-size: 0.75em; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+        .stat-value { font-size: 2em; font-weight: 700; color: var(--text); }
+        .stat-sub { font-size: 0.78em; color: var(--text-muted); }
+        .stat-icon { font-size: 1.5em; margin-bottom: 4px; }
+
+        /* ── CARDS ── */
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .card-title { font-size: 0.95em; font-weight: 600; }
+        .card-subtitle { font-size: 0.8em; color: var(--text-muted); margin-top: 2px; }
+
+        /* ── BUTTONS ── */
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.83em;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-dark); }
+        .btn-success { background: var(--success); color: white; }
+        .btn-success:hover { filter: brightness(0.9); }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger:hover { filter: brightness(0.9); }
+        .btn-ghost { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
+        .btn-ghost:hover { background: var(--bg); color: var(--text); }
+        .btn-sm { padding: 5px 10px; font-size: 0.75em; }
+        .btn-icon { padding: 6px 8px; }
+
+        /* ── FORMS ── */
+        .form-row { display: flex; gap: 10px; align-items: flex-end; margin-bottom: 16px; flex-wrap: wrap; }
+        .form-group { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 140px; }
+        .form-group label { font-size: 0.78em; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; }
+
+        input[type="text"], select, input[type="number"], textarea {
+            padding: 9px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.875em;
+            font-family: inherit;
+            background: white;
+            color: var(--text);
+            transition: border-color 0.15s;
+            width: 100%;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
+        }
+
+        textarea { min-height: 90px; resize: vertical; }
+
+        /* ── TOGGLE ── */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .toggle-row:last-child { border-bottom: none; }
+
+        .toggle-info { }
+        .toggle-info strong { font-size: 0.875em; font-weight: 600; display: block; }
+        .toggle-info small { font-size: 0.78em; color: var(--text-muted); }
+
+        .toggle {
+            position: relative;
+            width: 42px;
+            height: 24px;
+            flex-shrink: 0;
+        }
+        .toggle input { opacity: 0; width: 0; height: 0; }
+        .toggle-track {
+            position: absolute;
+            inset: 0;
+            background: #d1d5db;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .toggle-track::after {
+            content: '';
+            position: absolute;
+            width: 18px; height: 18px;
+            left: 3px; top: 3px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.2s;
+        }
+        .toggle input:checked ~ .toggle-track { background: var(--primary); }
+        .toggle input:checked ~ .toggle-track::after { transform: translateX(18px); }
+
+        /* ── WORD TABLE ── */
+        .category-tabs {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            background: white;
+            color: var(--text-muted);
+            transition: all 0.15s;
+            text-transform: capitalize;
+        }
+
+        .tab:hover { border-color: var(--primary); color: var(--primary); }
+        .tab.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+        .word-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 20px;
+            min-height: 60px;
+        }
+
+        .word-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            font-size: 0.82em;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .word-chip button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-muted);
+            font-size: 1em;
+            line-height: 1;
+            padding: 0;
+            transition: color 0.1s;
+        }
+        .word-chip button:hover { color: var(--danger); }
+
+        .empty-state {
+            color: var(--text-muted);
+            font-size: 0.85em;
+            font-style: italic;
+            padding: 12px 0;
+        }
+
+        /* ── RECENT ACTIVITY ── */
+        .activity-list { display: flex; flex-direction: column; gap: 0; }
+        .activity-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.85em;
+        }
+        .activity-item:last-child { border-bottom: none; }
+        .activity-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+        .dot-win { background: var(--success); }
+        .dot-loss { background: var(--danger); }
+        .dot-admin { background: var(--primary); }
+        .activity-time { margin-left: auto; color: var(--text-muted); font-size: 0.78em; white-space: nowrap; }
+
+        /* ── SETTINGS RANGE ── */
+        .range-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .range-row:last-child { border-bottom: none; }
+        .range-info { flex: 1; }
+        .range-info strong { font-size: 0.875em; font-weight: 600; display: block; }
+        .range-info small { font-size: 0.78em; color: var(--text-muted); }
+        .range-control { display: flex; align-items: center; gap: 10px; }
+        .range-val { font-size: 0.95em; font-weight: 700; color: var(--primary); min-width: 20px; text-align: center; }
+        input[type="range"] { width: 100px; accent-color: var(--primary); }
+
+        /* ── TOAST ── */
+        #toast {
+            position: fixed;
+            bottom: 24px; right: 24px;
+            background: #1e1e2e;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 0.875em;
+            font-weight: 500;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+            transform: translateY(80px);
+            opacity: 0;
+            transition: all 0.25s ease;
+            z-index: 999;
+            max-width: 300px;
+        }
+        #toast.show { transform: translateY(0); opacity: 1; }
+
+        /* ── DANGER ZONE ── */
+        .danger-zone {
+            border: 1px solid #fecaca;
+            background: #fff5f5;
+            border-radius: var(--radius);
+            padding: 20px 24px;
+        }
+        .danger-zone h3 { color: var(--danger); font-size: 0.9em; margin-bottom: 6px; }
+        .danger-zone p { font-size: 0.82em; color: var(--text-muted); margin-bottom: 14px; }
+
+        /* ── MOBILE ── */
+        .hamburger { display: none; background: none; border: none; font-size: 1.3em; cursor: pointer; }
+        .overlay { display: none; }
+
+        @media (max-width: 768px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.open { transform: translateX(0); }
+            .main { margin-left: 0; }
+            .content { padding: 20px; }
+            .hamburger { display: block; }
+            .overlay { display: block; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 99; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+            .overlay.active { opacity: 1; pointer-events: all; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+        <h2>🎮 Hangman</h2>
+        <span>Admin Dashboard</span>
+    </div>
+    <nav>
+        <span class="nav-section-label">Overview</span>
+        <button class="nav-item active" onclick="showPanel('overview', this)">
+            <span class="nav-icon">📊</span> Dashboard
+        </button>
+        <span class="nav-section-label">Content</span>
+        <button class="nav-item" onclick="showPanel('words', this)">
+            <span class="nav-icon">📝</span> Word Lists
+        </button>
+        <button class="nav-item" onclick="showPanel('categories', this)">
+            <span class="nav-icon">🗂️</span> Categories
+        </button>
+        <span class="nav-section-label">Configuration</span>
+        <button class="nav-item" onclick="showPanel('settings', this)">
+            <span class="nav-icon">⚙️</span> Game Settings
+        </button>
+        <button class="nav-item" onclick="showPanel('data', this)">
+            <span class="nav-icon">📈</span> Analytics
+        </button>
+    </nav>
+    <div class="sidebar-footer">
+        <a class="back-link" href="index.html">← Back to Game</a>
+    </div>
+</aside>
+
+<div class="main">
+    <div class="topbar">
+        <div style="display:flex;align-items:center;gap:12px;">
+            <button class="hamburger" onclick="toggleSidebar()">☰</button>
+            <span class="topbar-title" id="topbarTitle">Dashboard</span>
+        </div>
+        <div class="topbar-actions">
+            <span class="badge" id="wordCountBadge">0 words</span>
+            <button class="btn btn-primary btn-sm" onclick="saveAll()">💾 Save Changes</button>
+        </div>
+    </div>
+
+    <div class="content">
+
+        <!-- OVERVIEW -->
+        <div class="panel active" id="panel-overview">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">🏆</div>
+                    <div class="stat-label">Total Games</div>
+                    <div class="stat-value" id="stat-total">0</div>
+                    <div class="stat-sub">all time</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🎉</div>
+                    <div class="stat-label">Win Rate</div>
+                    <div class="stat-value" id="stat-winrate">—</div>
+                    <div class="stat-sub" id="stat-winrate-sub">no games yet</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">💀</div>
+                    <div class="stat-label">Total Losses</div>
+                    <div class="stat-value" id="stat-losses">0</div>
+                    <div class="stat-sub">games lost</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">📚</div>
+                    <div class="stat-label">Word Pool</div>
+                    <div class="stat-value" id="stat-words">0</div>
+                    <div class="stat-sub" id="stat-categories-sub">across 0 categories</div>
+                </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;flex-wrap:wrap;">
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">Recent Activity</div>
+                            <div class="card-subtitle">Last 10 game results</div>
+                        </div>
+                        <button class="btn btn-ghost btn-sm" onclick="clearActivity()">Clear</button>
+                    </div>
+                    <div class="activity-list" id="activityList">
+                        <div class="empty-state">No game history yet. Play a game first!</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">Top Guessed Letters</div>
+                            <div class="card-subtitle">Most common guesses</div>
+                        </div>
+                    </div>
+                    <div id="letterStats" style="display:flex;flex-direction:column;gap:8px;">
+                        <div class="empty-state">No data yet.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- WORD LISTS -->
+        <div class="panel" id="panel-words">
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">Word Lists</div>
+                        <div class="card-subtitle">Manage words by category</div>
+                    </div>
+                </div>
+                <div class="category-tabs" id="categoryTabs"></div>
+                <div class="word-grid" id="wordGrid"></div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Add Word</label>
+                        <input type="text" id="newWordInput" placeholder="Type a word..." onkeydown="if(event.key==='Enter') addWord()">
+                    </div>
+                    <button class="btn btn-primary" onclick="addWord()">+ Add</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- CATEGORIES -->
+        <div class="panel" id="panel-categories">
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">Categories</div>
+                        <div class="card-subtitle">Add or remove word categories</div>
+                    </div>
+                </div>
+                <div id="categoriesList" style="margin-bottom:20px;"></div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>New Category Name</label>
+                        <input type="text" id="newCategoryInput" placeholder="e.g. food, science..." onkeydown="if(event.key==='Enter') addCategory()">
+                    </div>
+                    <button class="btn btn-success" onclick="addCategory()">+ Create</button>
+                </div>
+            </div>
+
+            <div class="danger-zone">
+                <h3>⚠️ Danger Zone</h3>
+                <p>Resetting to defaults will remove all custom words and categories. This cannot be undone.</p>
+                <button class="btn btn-danger" onclick="resetToDefaults()">Reset to Defaults</button>
+            </div>
+        </div>
+
+        <!-- SETTINGS -->
+        <div class="panel" id="panel-settings">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Game Rules</div>
+                </div>
+                <div class="range-row">
+                    <div class="range-info">
+                        <strong>Max Wrong Guesses</strong>
+                        <small>How many wrong guesses before game over</small>
+                    </div>
+                    <div class="range-control">
+                        <input type="range" min="3" max="10" id="maxGuesses" oninput="document.getElementById('maxGuessesVal').textContent=this.value">
+                        <span class="range-val" id="maxGuessesVal">6</span>
+                    </div>
+                </div>
+                <div class="range-row">
+                    <div class="range-info">
+                        <strong>Min Word Length</strong>
+                        <small>Shortest words allowed in the game</small>
+                    </div>
+                    <div class="range-control">
+                        <input type="range" min="3" max="8" id="minWordLen" oninput="document.getElementById('minWordLenVal').textContent=this.value">
+                        <span class="range-val" id="minWordLenVal">3</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Features</div>
+                </div>
+                <div class="toggle-row">
+                    <div class="toggle-info">
+                        <strong>Show Category</strong>
+                        <small>Display the word's category as a clue</small>
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" id="showCategory" checked>
+                        <span class="toggle-track"></span>
+                    </label>
+                </div>
+                <div class="toggle-row">
+                    <div class="toggle-info">
+                        <strong>Show Wrong Letters</strong>
+                        <small>Display missed letters below the word</small>
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" id="showWrongLetters" checked>
+                        <span class="toggle-track"></span>
+                    </label>
+                </div>
+                <div class="toggle-row">
+                    <div class="toggle-info">
+                        <strong>Show Letter Count Hint</strong>
+                        <small>Show total letter count as a hint</small>
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" id="showLetterCount">
+                        <span class="toggle-track"></span>
+                    </label>
+                </div>
+                <div class="toggle-row">
+                    <div class="toggle-info">
+                        <strong>Track Analytics</strong>
+                        <small>Record game results for the dashboard</small>
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" id="trackAnalytics" checked>
+                        <span class="toggle-track"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- ANALYTICS -->
+        <div class="panel" id="panel-data">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">🔥</div>
+                    <div class="stat-label">Win Streak</div>
+                    <div class="stat-value" id="ana-streak">0</div>
+                    <div class="stat-sub">current streak</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">⚡</div>
+                    <div class="stat-label">Best Streak</div>
+                    <div class="stat-value" id="ana-best-streak">0</div>
+                    <div class="stat-sub">all time</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🎯</div>
+                    <div class="stat-label">Avg Wrong Guesses</div>
+                    <div class="stat-value" id="ana-avg-wrong">—</div>
+                    <div class="stat-sub">per game</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🏅</div>
+                    <div class="stat-label">Perfect Games</div>
+                    <div class="stat-value" id="ana-perfect">0</div>
+                    <div class="stat-sub">0 wrong guesses</div>
+                </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Win Rate by Category</div>
+                    </div>
+                    <div id="categoryStats"></div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">Export Data</div>
+                            <div class="card-subtitle">Download analytics as JSON</div>
+                        </div>
+                    </div>
+                    <p style="font-size:0.83em;color:var(--text-muted);margin-bottom:16px;">Export all game history, word lists, and settings for backup or analysis.</p>
+                    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                        <button class="btn btn-primary" onclick="exportData()">⬇️ Export JSON</button>
+                        <button class="btn btn-danger btn-sm" onclick="clearAllData()">🗑️ Clear All Data</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- end content -->
+</div><!-- end main -->
+
+<div id="toast"></div>
+
+<script>
+    // ── DEFAULT DATA ──
+    const DEFAULT_WORDS = {
+        animals: ['elephant', 'giraffe', 'penguin', 'butterfly', 'cheetah', 'dolphin', 'flamingo', 'koala'],
+        countries: ['japan', 'france', 'australia', 'argentina', 'canada', 'norway', 'spain', 'thailand'],
+        colors: ['purple', 'turquoise', 'magenta', 'crimson', 'chartreuse', 'indigo', 'maroon', 'olive'],
+        sports: ['basketball', 'volleyball', 'tennis', 'badminton', 'cricket', 'surfing', 'archery', 'skiing'],
+        movies: ['inception', 'titanic', 'avatar', 'matrix', 'jaws', 'alien', 'rocky', 'shrek']
+    };
+
+    const DEFAULT_SETTINGS = {
+        maxGuesses: 6,
+        minWordLen: 3,
+        showCategory: true,
+        showWrongLetters: true,
+        showLetterCount: false,
+        trackAnalytics: true
+    };
+
+    // ── STATE ──
+    let words = JSON.parse(localStorage.getItem('hm_words') || 'null') || deepClone(DEFAULT_WORDS);
+    let settings = JSON.parse(localStorage.getItem('hm_settings') || 'null') || { ...DEFAULT_SETTINGS };
+    let analytics = JSON.parse(localStorage.getItem('hm_analytics') || 'null') || {
+        games: [], letterFreq: {}, categoryWins: {}, categoryGames: {}
+    };
+    let activity = JSON.parse(localStorage.getItem('hm_activity') || '[]');
+
+    let activeCategory = Object.keys(words)[0] || '';
+
+    function deepClone(obj) { return JSON.parse(JSON.stringify(obj)); }
+
+    // ── NAVIGATION ──
+    const panelTitles = { overview: 'Dashboard', words: 'Word Lists', categories: 'Categories', settings: 'Game Settings', data: 'Analytics' };
+
+    function showPanel(id, btn) {
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        document.getElementById('panel-' + id).classList.add('active');
+        if (btn) btn.classList.add('active');
+        document.getElementById('topbarTitle').textContent = panelTitles[id] || id;
+        if (id === 'words') renderWordPanel();
+        if (id === 'categories') renderCategoryPanel();
+        if (id === 'overview') renderOverview();
+        if (id === 'data') renderAnalytics();
+        closeSidebar();
+    }
+
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('open');
+        document.getElementById('overlay').classList.toggle('active');
+    }
+    function closeSidebar() {
+        document.getElementById('sidebar').classList.remove('open');
+        document.getElementById('overlay').classList.remove('active');
+    }
+
+    // ── TOAST ──
+    let toastTimer;
+    function toast(msg) {
+        const el = document.getElementById('toast');
+        el.textContent = msg;
+        el.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+    }
+
+    // ── SAVE ──
+    function saveAll() {
+        // Collect settings from form
+        settings.maxGuesses = parseInt(document.getElementById('maxGuesses').value);
+        settings.minWordLen = parseInt(document.getElementById('minWordLen').value);
+        settings.showCategory = document.getElementById('showCategory').checked;
+        settings.showWrongLetters = document.getElementById('showWrongLetters').checked;
+        settings.showLetterCount = document.getElementById('showLetterCount').checked;
+        settings.trackAnalytics = document.getElementById('trackAnalytics').checked;
+
+        localStorage.setItem('hm_words', JSON.stringify(words));
+        localStorage.setItem('hm_settings', JSON.stringify(settings));
+        localStorage.setItem('hm_analytics', JSON.stringify(analytics));
+        localStorage.setItem('hm_activity', JSON.stringify(activity));
+        updateWordCountBadge();
+        toast('✅ Changes saved!');
+    }
+
+    // ── WORD MANAGEMENT ──
+    function renderWordPanel() {
+        const tabs = document.getElementById('categoryTabs');
+        tabs.innerHTML = '';
+        Object.keys(words).forEach(cat => {
+            const btn = document.createElement('button');
+            btn.className = 'tab' + (cat === activeCategory ? ' active' : '');
+            btn.textContent = `${cat} (${words[cat].length})`;
+            btn.onclick = () => { activeCategory = cat; renderWordPanel(); };
+            tabs.appendChild(btn);
+        });
+
+        const grid = document.getElementById('wordGrid');
+        grid.innerHTML = '';
+        const list = words[activeCategory] || [];
+        if (list.length === 0) {
+            grid.innerHTML = '<span class="empty-state">No words yet. Add some below.</span>';
+        } else {
+            list.forEach((word, i) => {
+                const chip = document.createElement('div');
+                chip.className = 'word-chip';
+                chip.innerHTML = `${word.toUpperCase()} <button title="Remove" onclick="removeWord(${i})">✕</button>`;
+                grid.appendChild(chip);
+            });
+        }
+    }
+
+    function addWord() {
+        const input = document.getElementById('newWordInput');
+        const val = input.value.trim().toLowerCase().replace(/[^a-z]/g, '');
+        if (!val) { toast('⚠️ Enter a valid word.'); return; }
+        if (val.length < 2) { toast('⚠️ Word too short.'); return; }
+        if ((words[activeCategory] || []).includes(val)) { toast('⚠️ Word already exists.'); return; }
+        if (!words[activeCategory]) words[activeCategory] = [];
+        words[activeCategory].push(val);
+        input.value = '';
+        renderWordPanel();
+        toast(`✅ "${val.toUpperCase()}" added to ${activeCategory}`);
+    }
+
+    function removeWord(index) {
+        const removed = words[activeCategory].splice(index, 1)[0];
+        renderWordPanel();
+        toast(`🗑️ "${removed.toUpperCase()}" removed`);
+    }
+
+    // ── CATEGORY MANAGEMENT ──
+    function renderCategoryPanel() {
+        const list = document.getElementById('categoriesList');
+        list.innerHTML = '';
+        Object.keys(words).forEach(cat => {
+            const row = document.createElement('div');
+            row.className = 'toggle-row';
+            row.style.cursor = 'default';
+            row.innerHTML = `
+                <div class="toggle-info">
+                    <strong style="text-transform:capitalize">${cat}</strong>
+                    <small>${words[cat].length} word${words[cat].length !== 1 ? 's' : ''}</small>
+                </div>
+                <button class="btn btn-danger btn-sm btn-icon" title="Delete category" onclick="deleteCategory('${cat}')">🗑️</button>
+            `;
+            list.appendChild(row);
+        });
+    }
+
+    function addCategory() {
+        const input = document.getElementById('newCategoryInput');
+        const val = input.value.trim().toLowerCase().replace(/[^a-z]/g, '');
+        if (!val) { toast('⚠️ Enter a category name.'); return; }
+        if (words[val]) { toast('⚠️ Category already exists.'); return; }
+        words[val] = [];
+        activeCategory = val;
+        input.value = '';
+        renderCategoryPanel();
+        toast(`✅ Category "${val}" created`);
+    }
+
+    function deleteCategory(cat) {
+        if (Object.keys(words).length <= 1) { toast('⚠️ Keep at least one category.'); return; }
+        if (!confirm(`Delete category "${cat}" and all its ${words[cat].length} words?`)) return;
+        delete words[cat];
+        if (activeCategory === cat) activeCategory = Object.keys(words)[0];
+        renderCategoryPanel();
+        toast(`🗑️ Category "${cat}" deleted`);
+    }
+
+    function resetToDefaults() {
+        if (!confirm('Reset all word lists and categories to defaults? This removes all custom content.')) return;
+        words = deepClone(DEFAULT_WORDS);
+        activeCategory = Object.keys(words)[0];
+        renderCategoryPanel();
+        renderWordPanel();
+        updateWordCountBadge();
+        toast('↺ Reset to defaults');
+    }
+
+    // ── SETTINGS FORM INIT ──
+    function initSettingsForm() {
+        const mg = document.getElementById('maxGuesses');
+        mg.value = settings.maxGuesses;
+        document.getElementById('maxGuessesVal').textContent = settings.maxGuesses;
+
+        const ml = document.getElementById('minWordLen');
+        ml.value = settings.minWordLen;
+        document.getElementById('minWordLenVal').textContent = settings.minWordLen;
+
+        document.getElementById('showCategory').checked = settings.showCategory;
+        document.getElementById('showWrongLetters').checked = settings.showWrongLetters;
+        document.getElementById('showLetterCount').checked = settings.showLetterCount;
+        document.getElementById('trackAnalytics').checked = settings.trackAnalytics;
+    }
+
+    // ── OVERVIEW ──
+    function renderOverview() {
+        const games = analytics.games || [];
+        const wins = games.filter(g => g.won).length;
+        const losses = games.filter(g => !g.won).length;
+        const total = games.length;
+        const winRate = total > 0 ? Math.round((wins / total) * 100) : null;
+
+        document.getElementById('stat-total').textContent = total;
+        document.getElementById('stat-losses').textContent = losses;
+        document.getElementById('stat-winrate').textContent = winRate !== null ? winRate + '%' : '—';
+        document.getElementById('stat-winrate-sub').textContent = total > 0 ? `${wins} wins / ${losses} losses` : 'no games yet';
+
+        const totalWords = Object.values(words).reduce((a, b) => a + b.length, 0);
+        document.getElementById('stat-words').textContent = totalWords;
+        document.getElementById('stat-categories-sub').textContent = `across ${Object.keys(words).length} categories`;
+
+        // Activity
+        const actList = document.getElementById('activityList');
+        if (activity.length === 0) {
+            actList.innerHTML = '<div class="empty-state">No game history yet. Play a game first!</div>';
+        } else {
+            actList.innerHTML = activity.slice().reverse().slice(0, 10).map(a => `
+                <div class="activity-item">
+                    <span class="activity-dot dot-${a.type}"></span>
+                    <span>${a.text}</span>
+                    <span class="activity-time">${a.time}</span>
+                </div>
+            `).join('');
+        }
+
+        // Letter frequency
+        const freq = analytics.letterFreq || {};
+        const sorted = Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, 6);
+        const lsDiv = document.getElementById('letterStats');
+        if (sorted.length === 0) {
+            lsDiv.innerHTML = '<div class="empty-state">No data yet.</div>';
+        } else {
+            const max = sorted[0][1];
+            lsDiv.innerHTML = sorted.map(([letter, count]) => `
+                <div style="display:flex;align-items:center;gap:10px;font-size:0.82em;">
+                    <span style="font-weight:700;width:18px;text-align:center;">${letter}</span>
+                    <div style="flex:1;height:8px;background:#f0f0f0;border-radius:4px;overflow:hidden;">
+                        <div style="height:100%;width:${Math.round((count/max)*100)}%;background:var(--primary);border-radius:4px;"></div>
+                    </div>
+                    <span style="color:var(--text-muted);min-width:28px;text-align:right;">${count}×</span>
+                </div>
+            `).join('');
+        }
+    }
+
+    // ── ANALYTICS PANEL ──
+    function renderAnalytics() {
+        const games = analytics.games || [];
+        const wins = games.filter(g => g.won).length;
+
+        // Streaks
+        let streak = 0, bestStreak = 0, cur = 0;
+        games.slice().reverse().forEach((g, i) => {
+            if (g.won) { cur++; if (i === 0 || games.slice().reverse()[i-1]?.won) streak = cur; }
+            else { cur = 0; }
+            bestStreak = Math.max(bestStreak, cur);
+        });
+        let runStreak = 0;
+        for (let i = games.length - 1; i >= 0; i--) {
+            if (games[i].won) runStreak++; else break;
+        }
+
+        document.getElementById('ana-streak').textContent = runStreak;
+        document.getElementById('ana-best-streak').textContent = bestStreak;
+
+        const avgWrong = games.length > 0 ? (games.reduce((a, g) => a + (g.wrongCount || 0), 0) / games.length).toFixed(1) : '—';
+        document.getElementById('ana-avg-wrong').textContent = avgWrong;
+
+        const perfect = games.filter(g => g.won && g.wrongCount === 0).length;
+        document.getElementById('ana-perfect').textContent = perfect;
+
+        // Category stats
+        const catStats = document.getElementById('categoryStats');
+        const cg = analytics.categoryGames || {};
+        const cw = analytics.categoryWins || {};
+        const cats = Object.keys(cg);
+        if (cats.length === 0) {
+            catStats.innerHTML = '<div class="empty-state">No data yet.</div>';
+        } else {
+            catStats.innerHTML = cats.map(cat => {
+                const total = cg[cat] || 0;
+                const catWins = cw[cat] || 0;
+                const pct = total > 0 ? Math.round((catWins / total) * 100) : 0;
+                return `
+                    <div style="margin-bottom:12px;">
+                        <div style="display:flex;justify-content:space-between;font-size:0.82em;margin-bottom:4px;">
+                            <span style="font-weight:600;text-transform:capitalize">${cat}</span>
+                            <span style="color:var(--text-muted)">${catWins}/${total} — ${pct}%</span>
+                        </div>
+                        <div style="height:8px;background:#f0f0f0;border-radius:4px;overflow:hidden;">
+                            <div style="height:100%;width:${pct}%;background:var(--success);border-radius:4px;"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+    }
+
+    // ── ACTIVITY ──
+    function clearActivity() {
+        if (!confirm('Clear all recent activity?')) return;
+        activity = [];
+        localStorage.setItem('hm_activity', '[]');
+        renderOverview();
+        toast('🗑️ Activity cleared');
+    }
+
+    // ── DATA EXPORT / CLEAR ──
+    function exportData() {
+        const blob = new Blob([JSON.stringify({ words, settings, analytics, activity }, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = 'hangman-data.json'; a.click();
+        URL.revokeObjectURL(url);
+        toast('⬇️ Export downloaded');
+    }
+
+    function clearAllData() {
+        if (!confirm('Delete ALL game data, analytics, and history? Word lists and settings are kept.')) return;
+        analytics = { games: [], letterFreq: {}, categoryWins: {}, categoryGames: {} };
+        activity = [];
+        localStorage.setItem('hm_analytics', JSON.stringify(analytics));
+        localStorage.setItem('hm_activity', '[]');
+        renderAnalytics();
+        renderOverview();
+        toast('🗑️ All analytics cleared');
+    }
+
+    // ── BADGE ──
+    function updateWordCountBadge() {
+        const total = Object.values(words).reduce((a, b) => a + b.length, 0);
+        document.getElementById('wordCountBadge').textContent = `${total} words`;
+    }
+
+    // ── INIT ──
+    initSettingsForm();
+    updateWordCountBadge();
+    renderOverview();
+</script>
+</body>
+</html>
